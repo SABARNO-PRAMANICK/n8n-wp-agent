@@ -1,0 +1,256 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "com.twilio.messaging.inbound-message.received"
+        ]
+      },
+      "type": "n8n-nodes-base.twilioTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "55848bbb-33c3-4893-a05e-65f558437004",
+      "name": "Twilio Trigger",
+      "webhookId": "9d06cfae-5d23-49c6-bc10-33a4cb8b4271",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Input:  {{ $json.data.body }}\nTime: {{ $now }}\n\nYou are a helpful Google Drive Assistant integrated with WhatsApp. Your role is to parse user commands from text messages and perform actions on the user's connected Google Drive account. Always respond clearly, concisely, and in a friendly tone. Only act on the authenticated user's Drive—never access unauthorized data.\n\nSupported commands (case-insensitive, with examples):\n- LIST <folder_path>: List all files in the specified folder. Example: \"LIST /ProjectX\" → Return a bullet list of file names, sizes, and types.\n- DELETE <file_path>: Delete the specified file. Require confirmation: Respond with \"Confirm delete of <file_path>? Reply YES to proceed.\" Only delete if the next message is \"YES\".\n- MOVE <source_path> <destination_path>: Move the file from source to destination folder. Require confirmation: Respond with \"Confirm move of <source_path> to <destination_path>? Reply YES to proceed.\" Only move if confirmed.\n- SUMMARY <folder_or_file_path>: Summarize the content. If a folder, provide a bullet-point digest for each PDF/Docx/TXT file (limit to 5 bullets per file, focusing on key points). If a single file, summarize it directly. Example: \"SUMMARY /ProjectX\" → \"File1.pdf: - Key point 1\\n- Key point 2\\nFile2.docx: - etc.\"\n- HELP: List all supported commands and examples.\n\nParsing rules:\n- Extract the command and parameters from the input text. Ignore extra words unless they provide context.\n- Handle paths starting with \"/' (e.g., /ProjectX/report.pdf).\n- If the command is invalid or unclear, respond with: \"Sorry, I didn't understand. Try 'HELP' for commands.\"\n- For summaries, read file content using MIME-type awareness (e.g., extract text from PDFs/Docx). Generate concise, objective summaries—do not add opinions.\n- Log every action internally (e.g., timestamp, command, outcome) but don't mention it unless asked.\n\nSafety and best practices:\n- Never perform mass deletions or moves—limit to one file per command.\n- If a file/folder doesn't exist, respond: \"File/folder not found. Please check the path.\"\n- For errors (e.g., permissions), explain simply: \"Error: Insufficient permissions. Check your Drive access.\"\n- Keep responses under 2000 characters for WhatsApp compatibility.\n- If natural language is used (e.g., \"Please list files in ProjectX\"), parse it to the nearest command.\n\nStart every response with the action result, then any follow-up questions.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        0
+      ],
+      "id": "510af140-e674-48b5-a3c6-4d4f117c2079",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Twilio Trigger').item.json.data.from.replace('whatsapp:','') }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        224
+      ],
+      "id": "6b1d3c95-2eef-40b1-88cb-ab569fb3d5f8",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        224,
+        224
+      ],
+      "id": "8185d453-bde8-4645-a6a5-13e6817dc671",
+      "name": "Google Gemini Chat Model",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "List files and folders in Google Drive",
+        "resource": "fileFolder",
+        "queryString": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Query', ``, 'string') }}",
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "1tex0pfKYtjJjJBE7ZH2Jn0ynIQ5fuNff",
+            "mode": "list",
+            "cachedResultName": "n8n-wp-agent",
+            "cachedResultUrl": "https://drive.google.com/drive/folders/1tex0pfKYtjJjJBE7ZH2Jn0ynIQ5fuNff"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [
+        512,
+        224
+      ],
+      "id": "daf0485b-3913-4fd5-80d3-85339db7ee87",
+      "name": "LIST",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "1lrz1qPHCgKnWkf-3JigqMWukSgiAYlBF",
+          "mode": "list",
+          "cachedResultName": "Computer_Vision_PyTorch.ipynb",
+          "cachedResultUrl": "https://colab.research.google.com/drive/1lrz1qPHCgKnWkf-3JigqMWukSgiAYlBF"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1tex0pfKYtjJjJBE7ZH2Jn0ynIQ5fuNff",
+          "mode": "list",
+          "cachedResultName": "n8n-wp-agent",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1tex0pfKYtjJjJBE7ZH2Jn0ynIQ5fuNff"
+        }
+      },
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [
+        672,
+        224
+      ],
+      "id": "1f0bcf1a-a0c3-4be6-860b-ebc8997f9b8f",
+      "name": "MOVE",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1XPqFJzy9JrnX-cskK5EubNwvYc2c6aXd",
+          "mode": "list",
+          "cachedResultName": "computer_science (1).zip",
+          "cachedResultUrl": "https://drive.google.com/file/d/1XPqFJzy9JrnX-cskK5EubNwvYc2c6aXd/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [
+        672,
+        48
+      ],
+      "id": "710d6d5c-2c9f-4114-bdcf-421be1f8533f",
+      "name": "DOWNLOAD",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "from": "={{ $('Twilio Trigger').item.json.data.to.replace('whatsapp:','') }}",
+        "to": "={{ $('Twilio Trigger').item.json.data.from.replace('whatsapp:','') }}",
+        "toWhatsapp": true,
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        656,
+        -160
+      ],
+      "id": "1e68eb40-570c-4a2d-850f-2720082347b8",
+      "name": "WhatsApp message",
+      "credentials": {}
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Twilio Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIST": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MOVE": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DOWNLOAD": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "896a1b89-f902-4d5e-afc6-6079ffd8a844",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1eb1c6c31a85bbcf0b9478cfcabe0755e65a41e7f78202b65d0514488316751a"
+  },
+  "id": "R42ygkKrSbeM2Mek",
+  "tags": []
+}
